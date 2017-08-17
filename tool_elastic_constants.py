@@ -1,12 +1,11 @@
 from copy import deepcopy
 from axes_check import axes_check
 from DataModelDict import DataModelDict
-
 import atomman.unitconvert as uc
 import numpy as np
 
 
-class ElasticConstants(object):
+class elastic_constants(object):
     """Class for storing and converting elastic constant values"""
 
     def __init__(self, **kwargs):
@@ -16,8 +15,10 @@ class ElasticConstants(object):
         Cij -- 6x6 Voigt representation of elastic stiffness
         Sij -- 6x6 Voigt representation of elastic compliance
         Cijkl -- 3x3x3x3 representation of elastic stiffness
-        model -- DataModelDict, string, or file-like object of data model containing elastic constants
-        C11, C12, ... C66 -- Individual components of Cij.  Must be in full sets for crystal system:
+        model -- DataModelDict, string, or file-like object
+        of data model containing elastic constants
+        C11, C12, ... C66 -- Individual components of Cij.
+        Must be in full sets for crystal system:
             cubic:        C11, C12, C44
             hexagonal:    C11, C33, C12, C13, C44
             tetragonal:   C11, C33, C12, C13, C16, C44, C66
@@ -29,20 +30,20 @@ class ElasticConstants(object):
             self.__c_ij = np.zeros((6, 6), dtype='float64')
             self.crystal_system = 'triclinic'
         elif 'Cij' in kwargs:
-            assert len(
-                kwargs) == 1, 'Cij cannot be specified with other keyword arguments'
+            assert len(kwargs) == 1, \
+                'Cij cannot be specified with other keyword arguments'
             self.Cij = kwargs['Cij']
         elif 'Sij' in kwargs:
-            assert len(
-                kwargs) == 1,
-            'Sij cannot be specified with other keyword arguments'
+            assert len(kwargs) == 1, \
+                'Sij cannot be specified with other keyword arguments'
             self.Sij = kwargs['Sij']
         elif 'Cijkl' in kwargs:
-            assert len(kwargs) == 1,
+            assert len(kwargs) == 1, \
                 'Cijkl cannot be specified with other keyword arguments'
             self.Cijkl = kwargs['Cijkl']
         # elif 'Sijkl' in kwargs:
-        #    assert len(kwargs) == 1, 'Sijkl cannot be specified with other keyword arguments'
+        #    assert len(kwargs) == 1, \
+        #    'Sijkl cannot be specified with other keyword arguments'
         #    self.Sijkl = kwargs['Sijkl']
         elif 'model' in kwargs:
             self.model(**kwargs)
@@ -71,7 +72,7 @@ class ElasticConstants(object):
     @Cij.setter
     def Cij(self, value):
         value = np.asarray(value, dtype='float64')
-        assert value.shape == (6, 6),  'Cij must be 6x6'
+        assert value.shape == (6, 6), 'Cij must be 6x6'
 
         # zero out near-zero terms
         value[np.isclose(value / value.max(), 0.0, atol=1e-9)] = 0.0
@@ -79,8 +80,9 @@ class ElasticConstants(object):
         # check symmetry
         for i in xrange(6):
             for j in xrange(i):
-                assert np.isclose(value[i, j], value[
-                                  j, i], atol=1e-9), '6x6 matrix not symmetric!'
+                assert np.isclose(value[i, j],
+                                  value[j, i], atol=1e-9), \
+                    '6x6 matrix not symmetric!'
         self.__c_ij = value
 
     @property
@@ -91,7 +93,8 @@ class ElasticConstants(object):
     @Sij.setter
     def Sij(self, value):
         value = np.asarray(value, dtype='float64')
-        assert value.shape == (6, 6),  'Sij must be 6x6'
+        assert value.shape == (6, 6), \
+            'Sij must be 6x6'
         self.Cij = np.linalg.inv(value)
 
     @property
@@ -116,15 +119,16 @@ class ElasticConstants(object):
     @Cijkl.setter
     def Cijkl(self, value):
         c = np.asarray(value, dtype='float64')
-        assert c.shape == (3, 3, 3, 3),  'Cijkl must be 3x3x3x3'
+        assert c.shape == (3, 3, 3, 3), \
+            'Cijkl must be 3x3x3x3'
 
         # check symmetry
         indexes = np.array(
             [[0, 0], [1, 1], [2, 2], [1, 2], [0, 2], [0, 1]], dtype=int)
         for ij in range(6):
             for kl in range(ij, 6):
-                i, j, k, l = indexes[ij, 0], indexes[
-                    ij, 1], indexes[kl, 0], indexes[kl, 1]
+                i, j, k, l = indexes[ij, 0], \
+                    indexes[ij, 1], indexes[kl, 0], indexes[kl, 1]
                 assert np.isclose(c[i, j, k, l], c[j, i, k, l])
                 assert np.isclose(c[i, j, k, l], c[j, i, l, k])
                 assert np.isclose(c[i, j, k, l], c[k, l, j, i])
@@ -133,16 +137,18 @@ class ElasticConstants(object):
                 assert np.isclose(c[i, j, k, l], c[k, l, i, j])
                 assert np.isclose(c[i, j, k, l], c[l, k, i, j])
 
-        self.Cij = np.array([[c[0, 0, 0, 0], c[0, 0, 1, 1], c[0, 0, 2, 2], c[0, 0, 1, 2], c[0, 0, 0, 2], c[0, 0, 0, 1]],
-                             [c[1, 1, 0, 0], c[1, 1, 1, 1], c[1, 1, 2, 2], c[
-                                 1, 1, 1, 2], c[1, 1, 0, 2], c[1, 1, 0, 1]],
-                             [c[2, 2, 0, 0], c[2, 2, 1, 1], c[2, 2, 2, 2], c[
-                                 2, 2, 1, 2], c[2, 2, 0, 2], c[2, 2, 0, 1]],
-                             [c[1, 2, 0, 0], c[1, 2, 1, 1], c[1, 2, 2, 2], c[
-                                 1, 2, 1, 2], c[1, 2, 0, 2], c[1, 2, 0, 1]],
-                             [c[0, 2, 0, 0], c[0, 2, 1, 1], c[0, 2, 2, 2], c[
-                                 0, 2, 1, 2], c[0, 2, 0, 2], c[0, 2, 0, 1]],
-                             [c[0, 1, 0, 0], c[0, 1, 1, 1], c[0, 1, 2, 2], c[0, 1, 1, 2], c[0, 1, 0, 2], c[0, 1, 0, 1]]])
+        self.Cij = np.array([[c[0, 0, 0, 0], c[0, 0, 1, 1], c[0, 0, 2, 2],
+                              c[0, 0, 1, 2], c[0, 0, 0, 2], c[0, 0, 0, 1]],
+                             [c[1, 1, 0, 0], c[1, 1, 1, 1], c[1, 1, 2, 2],
+                              c[1, 1, 1, 2], c[1, 1, 0, 2], c[1, 1, 0, 1]],
+                             [c[2, 2, 0, 0], c[2, 2, 1, 1], c[2, 2, 2, 2],
+                              c[2, 2, 1, 2], c[2, 2, 0, 2], c[2, 2, 0, 1]],
+                             [c[1, 2, 0, 0], c[1, 2, 1, 1], c[1, 2, 2, 2],
+                              c[1, 2, 1, 2], c[1, 2, 0, 2], c[1, 2, 0, 1]],
+                             [c[0, 2, 0, 0], c[0, 2, 1, 1], c[0, 2, 2, 2],
+                              c[0, 2, 1, 2], c[0, 2, 0, 2], c[0, 2, 0, 1]],
+                             [c[0, 1, 0, 0], c[0, 1, 1, 1], c[0, 1, 2, 2],
+                              c[0, 1, 1, 2], c[0, 1, 0, 2], c[0, 1, 0, 1]]])
 
 # This is the wrong conversion!
 #    @property
@@ -164,7 +170,7 @@ class ElasticConstants(object):
         C = np.einsum('ghij,ghmn,mnkl->ijkl', Q, self.Cijkl, Q)
         C[abs(C / C.max()) < tol] = 0.0
 
-        return ElasticConstants(Cijkl=C)
+        return elastic_constants(Cijkl=C)
 
     def cubic(self, **kwargs):
         """Set values with only cubic moduli:
@@ -183,7 +189,7 @@ class ElasticConstants(object):
                              [0.0, 0.0, 0.0, 0.0, 0.0, c44]])
 
     def hexagonal(self, **kwargs):
-        """Set values with only hexagonal moduli: 
+        """Set values with only hexagonal moduli:
         C11, C33, C12, C13, C44."""
         if len(kwargs) != 5:
             raise TypeError('Invalid arguments')
@@ -221,7 +227,7 @@ class ElasticConstants(object):
                              [c16, -c16, 0.0, 0.0, 0.0, c66]])
 
     def orthorhombic(self, **kwargs):
-        """Set values with only orthorhombic moduli: 
+        """Set values with only orthorhombic moduli:
         C11, C22, C33, C12, C13, C23, C44, C55, C66"""
 
         if len(kwargs) != 9:
@@ -297,7 +303,7 @@ class ElasticConstants(object):
 
         # Set values if model given
         if 'model' in kwargs:
-            assert len(kwargs) == 1,
+            assert len(kwargs) == 1, \
                 'no keyword arguments supported with model reading'
             model = DataModelDict(kwargs['model']).find('elastic-constants')
 
@@ -305,7 +311,7 @@ class ElasticConstants(object):
             for C in model['C']:
                 key = 'C' + C['ij'][0] + C['ij'][2]
                 c_dict[key] = uc.value_unit(C['stiffness'])
-            self.Cij = ElasticConstants(**c_dict).Cij
+            self.Cij = elastic_constants(**c_dict).Cij
 
         # Return DataModelDict if model not given
         else:
