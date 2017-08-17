@@ -3,7 +3,7 @@
 # @Author: chaomy
 # @Date:   2017-08-16 20:14:53
 # @Last Modified by:   chaomy
-# @Last Modified time: 2017-08-16 20:26:00
+# @Last Modified time: 2017-08-16 20:26:53
 
 import ase
 import ase.io
@@ -17,7 +17,7 @@ class transformat(object):
         return
 
     def qe2vasp(self):
-        atoms = ase.io.read('qe.out', 'espresso-out')
+        atoms = ase.io.read('qe.out', format='espresso-out')
         ase.io.write(filename='poscar', images=atoms, format='vasp')
         return
 
