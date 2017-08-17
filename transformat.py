@@ -3,9 +3,10 @@
 # @Author: chaomy
 # @Date:   2017-08-16 20:14:53
 # @Last Modified by:   chaomy
-# @Last Modified time: 2017-08-16 20:18:06
+# @Last Modified time: 2017-08-16 20:26:00
 
 import ase
+import ase.io
 from optparse import OptionParser
 
 
@@ -15,7 +16,7 @@ class transformat(object):
 
         return
 
-    def qe2poscar(self):
+    def qe2vasp(self):
         atoms = ase.io.read('qe.out', 'espresso-out')
         ase.io.write(filename='poscar', images=atoms, format='vasp')
         return
@@ -24,11 +25,19 @@ class transformat(object):
 if __name__ == '__main__':
     usage = "usage:%prog [options] arg1 [options] arg2"
     parser = OptionParser(usage=usage)
-    parser.add_option("-t", "--mtype",
-                      action="store",
-                      type="string",
-                      dest="mtype", help="",
-                      default="prp_r")
+
+    parser.add_option('-t', '--mtype', action='store',
+                      type='string', dest='mtype')
+
+    parser.add_option('-p', "--params", action="store",
+                      type='string', dest="fargs")
+
     (options, args) = parser.parse_args()
     drv = transformat()
-    drv.qe2poscar()
+
+    dispatcher = {'qe2vasp': drv.qe2vasp}
+
+    if options.fargs is not None:
+        dispatcher[options.mtype.lower()](options.fargs)
+    else:
+        dispatcher[options.mtype.lower()]()
